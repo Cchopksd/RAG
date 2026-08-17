@@ -1,0 +1,2 @@
+"""Gemini Knowledge RAG application."""
+

@@ -1,0 +1,16 @@
+.env
+.env.local
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.egg-info/
+*.log
+node_modules/
+.next/
+.turbo/
+.coverage
+htmlcov/
+server/data/uploads/*
+!server/data/uploads/.gitkeep
+server/data/raw/**/*.pdf
