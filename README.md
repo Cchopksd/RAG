@@ -79,8 +79,8 @@ Run commands from the server directory so its `.env` and data paths remain serve
 ```powershell
 cd server
 Copy-Item .env.example .env
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+./.venv/Scripts/python.exe -m pip install -e ".[dev]"
+./.venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
 The local environment template points PostgreSQL to `localhost:5432`. Docker Compose overrides it to use the `db` service internally.
@@ -125,7 +125,7 @@ pnpm dev
 Download the public Clark Atlanta University Staff Handbook into the server-owned data directory:
 
 ```powershell
-.\server\scripts\download_sample.ps1
+./server/scripts/download_sample.ps1
 ```
 
 The file is saved as `server/data/raw/hr/cau_staff_handbook_2026.pdf`. The source manifest is at `server/data/sources.json`, and starter evaluation questions are at `server/eval/retrieval_questions.jsonl`.
@@ -135,21 +135,21 @@ The file is saved as `server/data/raw/hr/cau_staff_handbook_2026.pdf`. The sourc
 Upload and index a PDF:
 
 ```bash
-curl -X POST http://localhost:8000/api/documents \
-  -H "X-Access-Level: confidential" \
-  -F "file=@handbook.pdf" \
-  -F "title=Staff Handbook" \
-  -F "classification=internal" \
+curl -X POST http://localhost:8000/api/documents /
+  -H "X-Access-Level: confidential" /
+  -F "file=@handbook.pdf" /
+  -F "title=Staff Handbook" /
+  -F "classification=internal" /
   -F 'metadata_json={"department":"HR","year":2026}'
 ```
 
 Ask a question:
 
 ```bash
-curl -X POST http://localhost:8000/api/chat \
-  -N \
-  -H "Content-Type: application/json" \
-  -H "X-Access-Level: internal" \
+curl -X POST http://localhost:8000/api/chat /
+  -N /
+  -H "Content-Type: application/json" /
+  -H "X-Access-Level: internal" /
   -d '{"query":"What is the annual leave policy?","top_k":5}'
 ```
 
@@ -171,7 +171,7 @@ Server:
 
 ```powershell
 cd server
-.\.venv\Scripts\python.exe -m pytest
+./.venv/Scripts/python.exe -m pytest
 ```
 
 Frontend:

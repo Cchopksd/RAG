@@ -34,21 +34,24 @@ export default async function ChatPage({
   const conversationResult = requestedResult
     ?? (selectedId ? await getConversationAction(selectedId) : null);
   const conversation = conversationResult?.ok ? conversationResult.data : null;
+  const loadErrors = Array.from(new Set([
+    documentsResult.ok ? null : documentsResult.error,
+    conversationsResult.ok ? null : conversationsResult.error,
+    conversationResult && !conversationResult.ok ? conversationResult.error : null,
+  ].filter((error): error is string => Boolean(error))));
 
   return (
-    <div className="view-stack">
-      <header className="page-intro">
+    <div className="grid gap-6">
+      <header className="flex items-end justify-between gap-4 pt-1">
         <div>
-          <span className="overline">GROUNDED Q&amp;A</span>
-          <h2>Ask your knowledge base</h2>
-          <p>Every answer is generated from retrieved evidence and linked back to its source page.</p>
+          <span className="text-xs font-semibold tracking-widest text-muted-foreground">GROUNDED Q&amp;A</span>
+          <h2 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Ask your knowledge base</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Every answer is generated from retrieved evidence and linked back to its source page.</p>
         </div>
       </header>
-      {!documentsResult.ok && <Alert variant="destructive"><AlertDescription>{documentsResult.error}</AlertDescription></Alert>}
-      {!conversationsResult.ok && <Alert variant="destructive"><AlertDescription>{conversationsResult.error}</AlertDescription></Alert>}
-      {conversationResult && !conversationResult.ok && (
-        <Alert variant="destructive"><AlertDescription>{conversationResult.error}</AlertDescription></Alert>
-      )}
+      {loadErrors.map((error) => (
+        <Alert key={error} variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
+      ))}
       <ChatWorkspace
         key={conversation?.id ?? "new-conversation"}
         documents={documentsResult.ok ? documentsResult.data : []}

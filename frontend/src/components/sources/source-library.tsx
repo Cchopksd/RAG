@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -48,6 +48,55 @@ import { EmptySources } from "./empty-sources";
 import { UploadDialog } from "./upload-dialog";
 import { sourceUrl } from "@/lib/source-url";
 import type { AccessLevel, DocumentRecord } from "@/lib/types";
+
+const dateFormatter = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
+
+function SourceActions({
+  document,
+  access,
+  deleting,
+  onDelete,
+}: {
+  document: DocumentRecord;
+  access: AccessLevel;
+  deleting: boolean;
+  onDelete: (document: DocumentRecord) => void;
+}) {
+  return (
+    <div className="flex justify-end gap-1">
+      <Button variant="outline" size="icon" nativeButton={false} render={<a href={sourceUrl(document.id)} target="_blank" rel="noreferrer" />} aria-label={`Open ${document.title}`}><ExternalLink /></Button>
+      <AlertDialog>
+        <AlertDialogTrigger
+          render={
+            <Button
+              variant="destructive"
+              size="icon"
+              disabled={access !== "confidential" || deleting}
+              title={access !== "confidential" ? "Confidential access required" : "Delete source"}
+              aria-label={`Delete ${document.title}`}
+            />
+          }
+        >
+          <Trash2 />
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this source?</AlertDialogTitle>
+            <AlertDialogDescription>
+              “{document.title}” and all of its indexed chunks will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" disabled={deleting} onClick={() => onDelete(document)}>
+              {deleting ? "Removing…" : "Remove source"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
 
 export function SourceLibrary({
   initialDocuments,
@@ -95,26 +144,26 @@ export function SourceLibrary({
   }
 
   return (
-    <div className="view-stack source-view">
-      <section className="library-heading">
+    <div className="grid gap-6">
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <span className="overline">EVIDENCE CATALOG</span>
-          <h2>Source documents</h2>
-          <p>Control which documents Atlas can retrieve, quote, and cite.</p>
+          <span className="text-xs font-semibold tracking-widest text-muted-foreground">EVIDENCE CATALOG</span>
+          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Source documents</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Control which documents Atlas can retrieve, quote, and cite.</p>
         </div>
-        <Button size="lg" onClick={() => router.push("/sources?upload=1", { scroll: false })}><Plus data-icon="inline-start" /> Add source</Button>
+        <Button className="w-full sm:w-auto" size="lg" onClick={() => router.push("/sources?upload=1", { scroll: false })}><Plus data-icon="inline-start" /> Add source</Button>
       </section>
 
       {loadError && <Alert variant="destructive"><AlertDescription>{loadError}</AlertDescription></Alert>}
 
-      <section className="library-toolbar" aria-label="Source filters">
-        <label className="relative min-w-64 flex-1">
+      <Card className="flex-row flex-wrap items-center gap-2 p-3" aria-label="Source filters">
+        <label className="relative min-w-0 flex-1 max-sm:basis-full">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 z-10 -translate-y-1/2 text-muted-foreground" size={16} />
           <span className="sr-only">Search documents</span>
-          <Input className="bg-card pl-8" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by title or filename…" />
+          <Input className="bg-background pl-8" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by title or filename…" />
         </label>
         <Select value={classification} onValueChange={(value) => setClassification(value as "all" | AccessLevel)}>
-          <SelectTrigger className="w-48 bg-card" aria-label="Filter by classification">
+          <SelectTrigger className="w-48 max-w-full bg-background" aria-label="Filter by classification">
             <ShieldCheck aria-hidden="true" />
             <SelectValue />
           </SelectTrigger>
@@ -132,12 +181,44 @@ export function SourceLibrary({
           aria-label="Refresh sources"
           disabled={refreshing}
         >
-          <RefreshCw className={refreshing ? "spin" : undefined} size={17} />
+          <RefreshCw className={refreshing ? "animate-spin" : undefined} size={17} />
         </Button>
-        <span className="result-count">{filtered.length} of {initialDocuments.length} source{initialDocuments.length === 1 ? "" : "s"}</span>
-      </section>
+        <span className="ml-auto text-xs text-muted-foreground max-sm:hidden">{filtered.length} of {initialDocuments.length} source{initialDocuments.length === 1 ? "" : "s"}</span>
+      </Card>
 
-      <Card className="source-table-card py-0" aria-label="Indexed sources">
+      <div className="grid gap-3 sm:hidden" aria-label="Indexed sources">
+        {filtered.map((document) => (
+          <Card key={document.id} size="sm" className="gap-0 py-0">
+            <CardContent className="p-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="grid size-10 shrink-0 place-items-center rounded-md border border-orange-200 bg-orange-50 font-mono text-[0.625rem] font-bold text-orange-600">PDF</div>
+                <div className="min-w-0 flex-1">
+                  <strong className="line-clamp-2 text-sm leading-snug">{document.title}</strong>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{document.filename}</p>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 border-t pt-3">
+                <div>
+                  <span className="block text-[0.6875rem] text-muted-foreground">Classification</span>
+                  <Badge variant="outline" className="mt-1 capitalize"><ShieldCheck size={12} /> {document.classification}</Badge>
+                </div>
+                <div>
+                  <span className="block text-[0.6875rem] text-muted-foreground">Index</span>
+                  <strong className="mt-1 block text-sm">{document.chunk_count} chunks</strong>
+                  <span className="text-xs text-muted-foreground">{document.page_count} citable pages</span>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="justify-between gap-3 px-4 py-3">
+              <span className="text-xs text-muted-foreground">Added {dateFormatter.format(new Date(document.created_at))}</span>
+              <SourceActions document={document} access={access} deleting={deletingId === document.id} onDelete={(item) => void handleDelete(item)} />
+            </CardFooter>
+          </Card>
+        ))}
+        {!filtered.length && <Card><EmptySources filtered={Boolean(search || classification !== "all")} /></Card>}
+      </div>
+
+      <Card className="hidden max-w-full overflow-hidden py-0 sm:flex" aria-label="Indexed sources">
         <Table>
           <TableHeader>
             <TableRow>
@@ -152,44 +233,13 @@ export function SourceLibrary({
           {filtered.map((document) => (
             <TableRow key={document.id}>
               <TableCell>
-                <div className="document-cell"><div className="pdf-mark">PDF</div><div><strong>{document.title}</strong><span>{document.filename}</span></div></div>
+                <div className="grid min-w-52 grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-3"><div className="grid h-10 place-items-center rounded-md border border-orange-200 bg-orange-50 font-mono text-[0.625rem] font-bold text-orange-600">PDF</div><div className="grid min-w-0"><strong className="truncate text-sm">{document.title}</strong><span className="truncate text-xs text-muted-foreground">{document.filename}</span></div></div>
               </TableCell>
-              <TableCell><Badge variant="outline" className={`classification ${document.classification}`}><ShieldCheck size={12} /> {document.classification}</Badge></TableCell>
-              <TableCell><div className="index-cell"><strong>{document.chunk_count} chunks</strong><span>{document.page_count} citable pages</span></div></TableCell>
-              <TableCell className="date-cell">{new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(document.created_at))}</TableCell>
+              <TableCell><Badge variant="outline" className="capitalize"><ShieldCheck size={12} /> {document.classification}</Badge></TableCell>
+              <TableCell><div className="grid"><strong className="text-sm">{document.chunk_count} chunks</strong><span className="text-xs text-muted-foreground">{document.page_count} citable pages</span></div></TableCell>
+              <TableCell className="text-xs text-muted-foreground">{dateFormatter.format(new Date(document.created_at))}</TableCell>
               <TableCell>
-                <div className="row-actions justify-end">
-                  <Button variant="outline" size="icon" nativeButton={false} render={<a href={sourceUrl(document.id)} target="_blank" rel="noreferrer" />} aria-label={`Open ${document.title}`}><ExternalLink /></Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger
-                      render={
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          disabled={access !== "confidential" || deletingId === document.id}
-                          title={access !== "confidential" ? "Confidential access required" : "Delete source"}
-                          aria-label={`Delete ${document.title}`}
-                        />
-                      }
-                    >
-                      <Trash2 />
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remove this source?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          “{document.title}” and all of its indexed chunks will be permanently removed.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel disabled={deletingId === document.id}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction variant="destructive" disabled={deletingId === document.id} onClick={() => void handleDelete(document)}>
-                          {deletingId === document.id ? "Removing…" : "Remove source"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                <SourceActions document={document} access={access} deleting={deletingId === document.id} onDelete={(item) => void handleDelete(item)} />
               </TableCell>
             </TableRow>
           ))}
@@ -213,7 +263,7 @@ export function SourceLibrary({
           }}
         />
       )}
-      {toast && <div className="toast" role="status"><Check size={17} /> {toast}</div>}
+      {toast && <Alert className="fixed right-4 bottom-4 z-50 w-auto max-w-sm bg-foreground text-background shadow-lg" role="status"><Check size={17} /><AlertDescription>{toast}</AlertDescription></Alert>}
     </div>
   );
 }

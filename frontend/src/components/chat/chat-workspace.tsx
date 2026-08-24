@@ -25,7 +25,8 @@ import { createConversationAction } from "@/actions/rag";
 import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ACCESS_LABELS } from "@/components/workspace/workspace-config";
 import { sourceUrl } from "@/lib/source-url";
@@ -55,8 +56,8 @@ function MarkdownAnswer({ content }: { content: string }) {
       skipHtml
       components={{
         table: ({ children }) => (
-          <div className="message-table-wrap">
-            <table>{children}</table>
+          <div className="my-3 max-w-full overflow-x-auto rounded-lg border">
+            <table className="w-full min-w-[32rem] border-collapse text-xs">{children}</table>
           </div>
         ),
       }}
@@ -393,17 +394,17 @@ export function ChatWorkspace({
   }
 
   return (
-    <div className="chat-layout">
-      <Card className="chat-context" aria-label="Chat history">
-        <span className="overline">CHAT HISTORY</span>
-        <h3>Conversations</h3>
-        <Badge variant="outline" className="history-scope"><ShieldCheck size={14} /> {ACCESS_LABELS[access]} access history</Badge>
-        <nav className="chat-history-list" aria-label="Saved conversations">
+    <div className="grid gap-4 lg:h-[calc(100dvh-13rem)] lg:min-h-[34rem] lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-1 lg:overflow-hidden xl:grid-cols-[18rem_minmax(0,1fr)]">
+      <Card className="h-fit p-4 lg:h-full lg:min-h-0" aria-label="Chat history">
+        <span className="text-xs font-semibold tracking-widest text-muted-foreground">CHAT HISTORY</span>
+        <h3 className="mt-1 text-lg font-semibold">Conversations</h3>
+        <Badge variant="outline" className="mt-3 gap-1"><ShieldCheck size={14} /> {ACCESS_LABELS[access]} access history</Badge>
+        <nav className="mt-4 grid max-h-[30rem] gap-1 overflow-y-auto overscroll-contain max-lg:flex max-lg:max-h-none max-lg:overflow-x-auto lg:min-h-0 lg:flex-1" aria-label="Saved conversations">
           {history.map((item) => (
             <Link
               key={item.id}
               href={`/chat?conversation=${encodeURIComponent(item.id)}`}
-              className={item.id === activeConversationId ? "active" : ""}
+              className={`grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-2 rounded-lg border px-3 py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground max-lg:min-w-48 ${item.id === activeConversationId ? "border-primary/20 bg-primary/10 text-foreground" : "border-transparent"}`}
               aria-current={item.id === activeConversationId ? "page" : undefined}
               aria-disabled={sending}
               onClick={(event) => {
@@ -411,40 +412,41 @@ export function ChatWorkspace({
               }}
             >
               <MessageSquareText size={16} />
-              <span><strong>{item.title}</strong><small>{item.message_count} messages · {item.updated_at.slice(0, 10)}</small></span>
+              <span className="grid min-w-0"><strong className="truncate text-xs">{item.title}</strong><small className="truncate text-[0.625rem]">{item.message_count} messages · {item.updated_at.slice(0, 10)}</small></span>
             </Link>
           ))}
           {!history.length && (
-            <p className="empty-history">No saved conversations yet. Ask a question or create a new chat to begin.</p>
+            <p className="p-2 text-xs leading-relaxed text-muted-foreground">No saved conversations yet. Ask a question or create a new chat to begin.</p>
           )}
         </nav>
-        <div className="grounding-note"><Sparkles size={17} /><p><strong>History is saved.</strong> Conversations remain available after refresh and stay separated by access scope.</p></div>
+        <Alert className="mt-4 max-lg:hidden"><Sparkles size={17} /><AlertDescription><strong>History is saved.</strong> Conversations remain available after refresh and stay separated by access scope.</AlertDescription></Alert>
       </Card>
 
-      <Card className="chat-surface py-0" aria-label="Atlas conversation">
-        <div className="chat-header">
-          <div className="atlas-avatar"><Sparkles size={20} /></div>
-          <div><strong>Atlas assistant</strong><span><i /> Saved · Retrieval grounded</span></div>
+      <Card className="flex min-h-[44rem] min-w-0 flex-col gap-0 overflow-hidden py-0 lg:h-full lg:min-h-0" aria-label="Atlas conversation">
+        <CardHeader className="flex min-h-16 shrink-0 flex-row items-center gap-3 border-b px-4 py-3">
+          <div className="grid size-9 place-items-center rounded-lg bg-primary/10 text-primary"><Sparkles size={20} /></div>
+          <div className="grid"><strong className="text-sm">Atlas assistant</strong><span className="text-xs text-muted-foreground"><i className="mr-1 inline-block size-1.5 rounded-full bg-emerald-500" /> Saved · Retrieval grounded</span></div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => void startNewChat()}
             disabled={creating || sending}
+            className="ml-auto"
           >
             <Plus data-icon="inline-start" /> {creating ? "Creating…" : "New chat"}
           </Button>
-        </div>
+        </CardHeader>
 
-        <div className="message-feed" aria-live="polite" aria-busy={sending}>
+        <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-5 sm:px-8" aria-live="polite" aria-busy={sending}>
           {messages.map((message) => (
-            <article className={`message ${message.role}`} key={message.id}>
-              <div className="message-avatar">{message.role === "assistant" ? <Bot size={18} /> : "YOU"}</div>
-              <div className="message-body">
-                <div className="message-meta">
+            <article className="mx-auto mb-7 grid max-w-4xl grid-cols-[1.75rem_minmax(0,1fr)] gap-2 sm:grid-cols-[2rem_minmax(0,1fr)] sm:gap-3" key={message.id}>
+              <div className={`grid size-7 place-items-center rounded-lg text-[0.5rem] font-bold sm:size-8 ${message.role === "assistant" ? "bg-primary/10 text-primary" : "bg-primary text-primary-foreground"}`}>{message.role === "assistant" ? <Bot size={18} /> : "YOU"}</div>
+              <div className="min-w-0">
+                <div className={`flex h-7 items-center gap-2 text-xs ${message.role === "user" ? "justify-end" : ""}`}>
                   <strong>{message.role === "assistant" ? "Atlas" : "You"}</strong>
-                  <span>{message.created_at ? message.created_at.slice(0, 10) : "Ready"}</span>
+                  <span className="text-[0.625rem] text-muted-foreground">{message.created_at ? message.created_at.slice(0, 10) : "Ready"}</span>
                 </div>
-                <div className={`message-content ${message.role === "assistant" ? "formatted-answer" : ""}`}>
+                <div className={`w-fit max-w-full rounded-xl border px-4 py-3 text-sm leading-7 ${message.role === "assistant" ? "formatted-answer bg-muted/40" : "ml-auto border-primary bg-primary text-primary-foreground"}`}>
                   {message.role === "assistant"
                     ? <MarkdownAnswer content={message.content} />
                     : message.content}
@@ -456,30 +458,30 @@ export function ChatWorkspace({
             </article>
           ))}
           {sending && !streaming && (
-            <article className="message assistant">
-              <div className="message-avatar"><Bot size={18} /></div>
-              <div className="message-body thinking" role="status"><span /><span /><span /><small>Retrieving and reading evidence…</small></div>
+            <article className="mx-auto mb-7 grid max-w-4xl grid-cols-[2rem_minmax(0,1fr)] gap-3">
+              <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary"><Bot size={18} /></div>
+              <div className="flex h-12 items-center gap-1" role="status"><span className="size-1.5 animate-pulse rounded-full bg-primary" /><span className="size-1.5 animate-pulse rounded-full bg-primary [animation-delay:150ms]" /><span className="size-1.5 animate-pulse rounded-full bg-primary [animation-delay:300ms]" /><small className="ml-2 text-xs text-muted-foreground">Retrieving and reading evidence…</small></div>
             </article>
           )}
           {error && (
-            <Alert className="chat-error" variant="destructive">
+            <Alert className="mx-auto mb-5 max-w-4xl" variant="destructive">
               <CircleAlert size={17} />
               <AlertDescription>{error}</AlertDescription>
               <AlertAction><Button variant="ghost" size="icon-sm" onClick={() => setError(null)} aria-label="Dismiss error"><X /></Button></AlertAction>
             </Alert>
           )}
           <div ref={endRef} />
-        </div>
+        </CardContent>
 
-        <div className="composer-wrap">
+        <div className="shrink-0 border-t bg-background p-3 sm:p-4">
           {messages.length === 1 && messages[0].id === "welcome" && documents.length > 0 && (
-            <div className="suggestions">
+            <div className="mb-2 flex gap-2 overflow-x-auto max-sm:hidden">
               {SUGGESTED_QUESTIONS.slice(0, 3).map((item) => (
                 <Button variant="outline" size="sm" key={item} onClick={() => void submit(undefined, item)}>{item}</Button>
               ))}
             </div>
           )}
-          <form className="composer" onSubmit={(event) => void submit(event)}>
+          <form className="mx-auto max-w-4xl rounded-xl border bg-background shadow-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/20" onSubmit={(event) => void submit(event)}>
             <Textarea
               ref={questionRef}
               aria-label="Question for Atlas"
@@ -494,14 +496,14 @@ export function ChatWorkspace({
               placeholder={documents.length ? "Ask a question about your knowledge base…" : "Upload a source before asking a question…"}
               disabled={!documents.length || sending}
               rows={2}
+              className="min-h-20 resize-none border-0 bg-transparent px-4 pt-3 shadow-none focus-visible:ring-0"
             />
-            <div className="composer-footer">
-              <div className="filter-wrap">
+            <div className="flex min-h-11 items-center gap-2 px-2 pb-2">
+              <div className="relative">
                 <Button
                   type="button"
                   variant={selectedDocuments.length ? "secondary" : "ghost"}
                   size="sm"
-                  className={`filter-button ${selectedDocuments.length ? "active" : ""}`}
                   onClick={() => setFiltersOpen((current) => !current)}
                   aria-expanded={filtersOpen}
                   aria-controls="source-filter-popover"
@@ -509,23 +511,22 @@ export function ChatWorkspace({
                   <FileSearch size={15} /> {selectedDocuments.length ? `${selectedDocuments.length} selected` : "All sources"} <ChevronDown size={14} />
                 </Button>
                 {filtersOpen && (
-                  <Card className="source-filter-popover" id="source-filter-popover">
-                    <div><strong>Search scope</strong><Button variant="link" size="xs" type="button" onClick={() => setSelectedDocuments([])}>Use all</Button></div>
+                  <Card className="absolute bottom-[calc(100%+0.5rem)] left-0 z-20 grid max-h-72 w-72 overflow-y-auto p-2 shadow-xl" id="source-filter-popover">
+                    <div className="mb-1 flex items-center justify-between border-b px-1 pb-2"><strong className="text-xs">Search scope</strong><Button variant="link" size="xs" type="button" onClick={() => setSelectedDocuments([])}>Use all</Button></div>
                     {documents.map((document) => (
-                      <label key={document.id}>
-                        <input
-                          type="checkbox"
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-muted" key={document.id}>
+                        <Checkbox
                           checked={selectedDocuments.includes(document.id)}
-                          onChange={() => toggleDocument(document.id)}
+                          onCheckedChange={() => toggleDocument(document.id)}
                         />
-                        <span>{document.title}<small>{document.page_count} pages</small></span>
+                        <span className="grid min-w-0"><span className="truncate text-xs">{document.title}</span><small className="text-[0.625rem] text-muted-foreground">{document.page_count} pages</small></span>
                       </label>
                     ))}
                   </Card>
                 )}
               </div>
-              <span>Enter to send · Shift + Enter for new line</span>
-              <Button className="send-button" size="icon-lg" type="submit" disabled={!question.trim() || sending || !documents.length} aria-label="Send question"><Send /></Button>
+              <span className="ml-auto text-[0.625rem] text-muted-foreground max-sm:hidden">Enter to send · Shift + Enter for new line</span>
+              <Button size="icon-lg" type="submit" disabled={!question.trim() || sending || !documents.length} aria-label="Send question"><Send /></Button>
             </div>
           </form>
         </div>
@@ -540,27 +541,27 @@ function CitationGroup({ content, sources }: { content: string; sources: Source[
   const citationsId = useId();
 
   return (
-    <div className="citation-group">
+    <div className="mt-3">
       <Button
         type="button"
         variant="ghost"
         size="sm"
-        className={`citation-disclosure ${expanded ? "expanded" : ""}`}
+        className="mb-2 w-full justify-start"
         aria-expanded={expanded}
         aria-controls={citationsId}
         onClick={() => setExpanded((current) => !current)}
       >
         <BookOpenText size={15} aria-hidden="true" />
         <span>{sources.length} retrieved citations</span>
-        <span className="citation-disclosure-label">{expanded ? "Collapse" : "Expand"}</span>
-        <ChevronDown size={14} aria-hidden="true" />
+        <span className="ml-auto text-primary">{expanded ? "Collapse" : "Expand"}</span>
+        <ChevronDown className={`text-primary transition-transform ${expanded ? "rotate-180" : ""}`} size={14} aria-hidden="true" />
       </Button>
-      <div className="citation-grid" id={citationsId} hidden={!expanded}>
+      <div className="grid gap-2" id={citationsId} hidden={!expanded}>
         {sources.map((source) => (
           <CitationCard key={`${source.document_id}-${source.source_number}`} source={source} />
         ))}
       </div>
-      <Button variant="ghost" size="sm" className="copy-button" onClick={() => void navigator.clipboard.writeText(content)}>
+      <Button variant="ghost" size="sm" className="mt-2" onClick={() => void navigator.clipboard.writeText(content)}>
         <Clipboard data-icon="inline-start" /> Copy answer
       </Button>
     </div>
@@ -571,31 +572,31 @@ function CitationCard({ source }: { source: Source }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Card className={`citation-card py-0 ${expanded ? "expanded" : ""}`}>
-      <span className="citation-number">[{source.source_number}]</span>
+    <Card className="grid grid-cols-[1.75rem_minmax(0,1fr)_1.75rem] items-start gap-2 p-3">
+      <span className="font-mono text-xs font-semibold text-primary">[{source.source_number}]</span>
       <Button
         type="button"
         variant="ghost"
-        className="citation-toggle"
+        className="h-auto min-w-0 items-start justify-start whitespace-normal p-0 text-left hover:bg-transparent"
         aria-expanded={expanded}
         aria-label={`${expanded ? "Collapse" : "Expand"} source ${source.source_number}: ${source.document_title}`}
         onClick={() => setExpanded((current) => !current)}
       >
-        <span className="citation-copy">
-          <strong>{source.document_title}</strong>
-          <span>Page {source.page_number}{source.section ? ` · ${source.section}` : ""}</span>
-          <span className="citation-excerpt">{source.content}</span>
+        <span className="grid min-w-0 flex-1 gap-1">
+          <strong className="truncate text-xs">{source.document_title}</strong>
+          <span className="text-[0.625rem] text-muted-foreground">Page {source.page_number}{source.section ? ` · ${source.section}` : ""}</span>
+          <span className={`text-xs leading-relaxed text-muted-foreground ${expanded ? "whitespace-pre-wrap" : "line-clamp-2"}`}>{source.content}</span>
         </span>
-        <span className="citation-toggle-label">
+        <span className="ml-2 inline-flex items-center gap-1 text-[0.625rem] text-primary">
           {expanded ? "Collapse" : "Expand"}
-          <ChevronDown size={13} aria-hidden="true" />
+          <ChevronDown className={`transition-transform ${expanded ? "rotate-180" : ""}`} size={13} aria-hidden="true" />
         </span>
       </Button>
       <Button
         variant="ghost"
         size="icon-sm"
         nativeButton={false}
-        className="citation-open"
+        className="-mt-1"
         render={<a href={sourceUrl(source.document_id, source.page_number)} target="_blank" rel="noreferrer" />}
         aria-label={`Open ${source.document_title}, page ${source.page_number} in a new tab`}
       >

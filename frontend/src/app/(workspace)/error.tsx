@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export default function WorkspaceError() {
   return (
-    <Alert className="route-error" variant="destructive">
+    <Alert className="mt-8 items-center p-6" variant="destructive">
       <CircleAlert size={24} />
       <div>
         <AlertTitle>This workspace could not be rendered</AlertTitle>

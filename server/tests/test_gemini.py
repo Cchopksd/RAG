@@ -5,7 +5,7 @@ from google.genai import errors
 from google.genai import types
 
 from app.config import Settings
-from app.services.gemini import GeminiRateLimited, GeminiService
+from app.services.gemini import ANSWER_SYSTEM_INSTRUCTION, GeminiRateLimited, GeminiService
 
 
 class FakeModels:
@@ -20,7 +20,11 @@ class FakeModels:
 
 
 class FakeInteractions:
+    def __init__(self):
+        self.last_request = None
+
     def create(self, **kwargs):
+        self.last_request = kwargs
         if kwargs.get("stream"):
             return iter(
                 (
@@ -78,8 +82,23 @@ def test_embedding_retries_after_rate_limit(monkeypatch):
 
 
 def test_answer_returns_grounded_text():
-    answer = service_with_fake_client().answer("How much leave?", "[1] 15 days")
+    service = service_with_fake_client()
+    answer = service.answer(
+        "แปล",
+        "",
+        "User: How much leave?\n\nAssistant: Employees receive 15 days [1].",
+    )
+
     assert answer.endswith("[1].")
+    assert service._client.interactions.last_request["system_instruction"] == (
+        ANSWER_SYSTEM_INSTRUCTION
+    )
+    assert service._client.interactions.last_request["input"] == (
+        "Retrieved sources:\n(No retrieved sources.)\n\n"
+        "Conversation history:\nUser: How much leave?\n\n"
+        "Assistant: Employees receive 15 days [1].\n\n"
+        "Latest user message:\nแปล"
+    )
 
 
 def test_answer_stream_yields_text_deltas():

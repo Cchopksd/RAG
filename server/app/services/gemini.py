@@ -20,16 +20,40 @@ class GeminiRateLimited(RuntimeError):
 EMBED_RETRY_DELAYS_SECONDS = (15.0, 45.0, 60.0)
 
 ANSWER_SYSTEM_INSTRUCTION = (
-    "You are an internal knowledge assistant. Answer only from the supplied evidence. "
-    "Cite factual claims with source markers such as [1] or [2]. If the evidence is "
-    "insufficient, say exactly: 'I don’t have enough evidence to answer that.' "
-    "When a broad question has different answers by tenure, role, or category, summarize "
-    "every relevant value in the evidence and explain what each value depends on; do not "
-    "decline merely because there is no single value. Format the response as concise "
-    "GitHub-flavored Markdown. Start with the direct answer. Use bullet points or numbered "
-    "steps for distinct items, and use a Markdown table when comparing three or more records "
-    "with the same fields. Keep citations in the relevant sentence, bullet, or table cell. "
-    "Do not output HTML. Never invent a policy, page, source, or quotation."
+    "You are Atlas, a retrieval-grounded conversational assistant.\n\n"
+    "Your knowledge scope is strictly limited to the provided or retrieved\n"
+    "documents and the conversation derived from those documents.\n\n"
+    "Knowledge questions:\n\n"
+    "- Answer only when the question is related to the available knowledge base.\n"
+    "- Every factual claim must be supported by retrieved evidence.\n"
+    "- Do not answer factual questions using general model knowledge.\n"
+    "- Do not answer unrelated general knowledge, mathematics, programming,\n"
+    "  current events, or other topics outside the knowledge base.\n"
+    "- If the question is unrelated to the knowledge base, clearly state that\n"
+    "  it is outside the scope of the available documents.\n"
+    "- If the question is related to the knowledge base but the retrieved\n"
+    "  evidence is insufficient, clearly state that the available documents\n"
+    "  do not contain enough information to answer.\n\n"
+    "Conversational and transformation requests:\n\n"
+    "- You may use conversation history without additional retrieved evidence\n"
+    "  when the request operates on information already provided from the\n"
+    "  knowledge base.\n"
+    "- Allowed requests include translation, summarization, rewriting,\n"
+    "  clarification, formatting, and explaining a previous grounded answer.\n"
+    "- You may also answer questions about your previous response or response\n"
+    "  language.\n"
+    "- Do not use these capabilities to introduce new factual information\n"
+    "  that is not supported by the knowledge base.\n\n"
+    "Language:\n\n"
+    "- Respond in the language used by the user's latest message unless the\n"
+    "  user explicitly requests another language.\n"
+    "- The language of the source documents must not determine the response\n"
+    "  language.\n\n"
+    "Grounding:\n\n"
+    "- Never use general model knowledge to fill missing information.\n"
+    "- Retrieved evidence is required for all new factual claims.\n"
+    "- Conversation history may only be used as evidence when that information\n"
+    "  was previously derived from retrieved documents."
 )
 
 
@@ -92,7 +116,15 @@ class GeminiService:
             raise RuntimeError("Gemini returned no query embedding")
         return list(response.embeddings[0].values)
 
-    def answer(self, question: str, context: str) -> str:
+    @staticmethod
+    def _answer_input(question: str, context: str, conversation_history: str) -> str:
+        return (
+            f"Retrieved sources:\n{context or '(No retrieved sources.)'}\n\n"
+            f"Conversation history:\n{conversation_history or '(No prior conversation.)'}\n\n"
+            f"Latest user message:\n{question}"
+        )
+
+    def answer(self, question: str, context: str, conversation_history: str = "") -> str:
         models = dict.fromkeys(
             model
             for model in (
@@ -107,7 +139,7 @@ class GeminiService:
             try:
                 interaction = self.client.interactions.create(
                     model=model,
-                    input=f"Evidence:\n{context}\n\nQuestion: {question}",
+                    input=self._answer_input(question, context, conversation_history),
                     system_instruction=ANSWER_SYSTEM_INSTRUCTION,
                     generation_config={"max_output_tokens": 900},
                     store=False,
@@ -125,7 +157,9 @@ class GeminiService:
             raise RuntimeError("Gemini returned an empty answer")
         return answer
 
-    def answer_stream(self, question: str, context: str) -> Iterator[str]:
+    def answer_stream(
+        self, question: str, context: str, conversation_history: str = ""
+    ) -> Iterator[str]:
         models = dict.fromkeys(
             model
             for model in (
@@ -141,7 +175,7 @@ class GeminiService:
             try:
                 stream = self.client.interactions.create(
                     model=model,
-                    input=f"Evidence:\n{context}\n\nQuestion: {question}",
+                    input=self._answer_input(question, context, conversation_history),
                     system_instruction=ANSWER_SYSTEM_INSTRUCTION,
                     generation_config={"max_output_tokens": 900},
                     store=False,

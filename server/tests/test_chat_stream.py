@@ -8,9 +8,10 @@ from app.schemas import ChatRequest, SourceOut
 
 
 class FakeGemini:
-    def answer_stream(self, question: str, context: str):
+    def answer_stream(self, question: str, context: str, history: str):
         assert question == "What is the policy?"
         assert "Policy handbook" in context
+        assert history == "User: Earlier question\n\nAssistant: Earlier answer [1]."
         yield "The policy "
         yield "is documented [1]."
 
@@ -50,6 +51,7 @@ def test_chat_stream_emits_deltas_then_persisted_completion(monkeypatch):
             question="What is the policy?",
             sources=[source],
             gemini=FakeGemini(),
+            history="User: Earlier question\n\nAssistant: Earlier answer [1].",
             workspace_id="local",
             access=Classification.public,
         )

@@ -33,7 +33,7 @@ export function AccessSelector({ value }: { value: AccessLevel }) {
       onValueChange={(nextAccess) => changeAccess(nextAccess as AccessLevel)}
     >
       <SelectTrigger
-        className="w-[148px] bg-card"
+        className="w-[148px] bg-card max-sm:w-[118px]"
         aria-label={pending ? "Updating access level" : "Access level"}
       >
         <LockKeyhole aria-hidden="true" />

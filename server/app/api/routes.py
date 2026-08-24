@@ -35,7 +35,6 @@ from app.services.retrieval import build_context, hybrid_search
 
 
 router = APIRouter(prefix="/api")
-INSUFFICIENT_EVIDENCE_ANSWER = "I don’t have enough evidence to answer that."
 logger = logging.getLogger(__name__)
 
 WORKSPACE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$")
@@ -105,6 +104,15 @@ def conversation_title(question: str) -> str:
     return normalized if len(normalized) <= 80 else f"{normalized[:77].rstrip()}…"
 
 
+def conversation_history(conversation: ChatConversation | None, max_messages: int = 12) -> str:
+    if not conversation:
+        return ""
+    return "\n\n".join(
+        f"{message.role.value.capitalize()}: {message.content}"
+        for message in conversation.messages[-max_messages:]
+    )
+
+
 def sse_event(event: str, payload: dict) -> str:
     data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     return f"event: {event}\ndata: {data}\n\n"
@@ -172,16 +180,13 @@ def stream_chat_events(
     question: str,
     sources: list[SourceOut],
     gemini: GeminiService,
+    history: str,
     workspace_id: str,
     access: Classification,
 ) -> Iterator[str]:
     answer_parts: list[str] = []
     try:
-        chunks = (
-            gemini.answer_stream(question, build_context(sources))
-            if sources
-            else iter((INSUFFICIENT_EVIDENCE_ANSWER,))
-        )
+        chunks = gemini.answer_stream(question, build_context(sources), history)
         for text_chunk in chunks:
             answer_parts.append(text_chunk)
             yield sse_event("delta", {"text": text_chunk})
@@ -189,7 +194,7 @@ def stream_chat_events(
         answer = "".join(answer_parts).strip()
         if not answer:
             raise RuntimeError("Gemini returned an empty answer")
-        grounded = bool(sources) and answer != INSUFFICIENT_EVIDENCE_ANSWER
+        grounded = bool(sources)
         response = persist_chat_response(
             request=request,
             question=question,
@@ -430,8 +435,18 @@ def chat(
     workspace_id: str = Depends(get_workspace_id),
 ) -> StreamingResponse:
     question = request.question or request.query
-    if request.conversation_id:
-        visible_conversation(session, request.conversation_id, workspace_id, access)
+    conversation = (
+        visible_conversation(
+            session,
+            request.conversation_id,
+            workspace_id,
+            access,
+            include_messages=True,
+        )
+        if request.conversation_id
+        else None
+    )
+    history = conversation_history(conversation)
     try:
         result = hybrid_search(
             session, gemini, question, request.top_k, access, request.document_ids
@@ -449,6 +464,7 @@ def chat(
             question=question,
             sources=result.sources,
             gemini=gemini,
+            history=history,
             workspace_id=workspace_id,
             access=access,
         ),
