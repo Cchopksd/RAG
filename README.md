@@ -44,7 +44,7 @@ The browser submits JSON to typed, same-origin Next.js route handlers. Those han
 
 Create the server environment file:
 
-```powershell
+```bash
 Copy-Item server/.env.example server/.env
 ```
 
@@ -56,7 +56,7 @@ GEMINI_API_KEY=your-key-from-google-ai-studio
 
 Start all three services:
 
-```powershell
+```bash
 docker compose up --build
 ```
 
@@ -68,7 +68,7 @@ docker compose up --build
 
 ### Database
 
-```powershell
+```bash
 docker compose up db -d
 ```
 
@@ -76,7 +76,7 @@ docker compose up db -d
 
 Run commands from the server directory so its `.env` and data paths remain server-owned:
 
-```powershell
+```bash
 cd server
 Copy-Item .env.example .env
 ./.venv/Scripts/python.exe -m pip install -e ".[dev]"
@@ -89,7 +89,7 @@ The local environment template points PostgreSQL to `localhost:5432`. Docker Com
 
 In a second terminal:
 
-```powershell
+```bash
 cd frontend
 Copy-Item .env.local.example .env.local
 pnpm install
@@ -124,7 +124,7 @@ pnpm dev
 
 Download the public Clark Atlanta University Staff Handbook into the server-owned data directory:
 
-```powershell
+```bash
 ./server/scripts/download_sample.ps1
 ```
 
@@ -169,14 +169,14 @@ Conversation history is also separated by the active `X-Access-Level`.
 
 Server:
 
-```powershell
+```bash
 cd server
 ./.venv/Scripts/python.exe -m pytest
 ```
 
 Frontend:
 
-```powershell
+```bash
 cd frontend
 pnpm lint
 pnpm typecheck
@@ -185,7 +185,7 @@ pnpm build
 
 Container builds can also be performed separately:
 
-```powershell
+```bash
 docker build -t atlas-server ./server
 docker build -t atlas-frontend ./frontend
 ```
